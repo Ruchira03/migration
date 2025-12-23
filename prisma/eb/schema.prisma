@@ -1,0 +1,737 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/eb"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("EB_DATABASE_URL")
+}
+
+model bad_to_good {
+  id   String @id
+  bad  String
+  good String
+}
+
+model banner_ad {
+  id          String     @id
+  title       String
+  description String?
+  image_url   String
+  is_promoted Boolean
+  is_service  Boolean
+  route_url   String?
+  created_at  DateTime   @default(now())
+  updated_at  DateTime
+  category_id String
+  service_id  String?
+  categories  categories @relation(fields: [category_id], references: [id])
+  services    services?  @relation(fields: [service_id], references: [id])
+}
+
+model bundle_details {
+  id            String          @id
+  bundle_id     String
+  category_id   String
+  vendor_id     String
+  service_id    String
+  plan_id       String
+  coupon_id     String
+  start_date    DateTime
+  end_date      DateTime
+  created_at    DateTime        @default(now())
+  updated_at    DateTime
+  bundles       bundles         @relation(fields: [bundle_id], references: [id])
+  categories    categories      @relation(fields: [category_id], references: [id])
+  coupons       coupons         @relation(fields: [coupon_id], references: [id])
+  plans         plans           @relation(fields: [plan_id], references: [id])
+  services      services        @relation(fields: [service_id], references: [id])
+  vendors       vendors         @relation(fields: [vendor_id], references: [id])
+  service_usage service_usage[]
+
+  @@index([bundle_id])
+}
+
+model bundle_details_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model bundle_mappings {
+  id         String   @id
+  client_id  String
+  dept       String
+  grade      String
+  bundle_id  String
+  created_at DateTime @default(now())
+  updated_at DateTime
+  bundles    bundles  @relation(fields: [bundle_id], references: [id])
+  clients    clients  @relation(fields: [client_id], references: [id])
+}
+
+model bundles {
+  id                  String                @id
+  name                String
+  created_at          DateTime              @default(now())
+  updated_at          DateTime
+  bundle_details      bundle_details[]
+  bundle_mappings     bundle_mappings[]
+  employees           employees[]
+  service_usage_quota service_usage_quota[]
+}
+
+model categories {
+  id                String              @id
+  name              String              @unique
+  created_at        DateTime            @default(now())
+  updated_at        DateTime
+  banner_ad         banner_ad[]
+  bundle_details    bundle_details[]
+  services          services[]
+  subcategory       subcategory[]
+  tile_ad           tile_ad[]
+  vendor_categories vendor_categories[]
+
+  @@index([id])
+}
+
+model category_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model client_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model clients {
+  id                     String                   @id
+  name                   String
+  spoc                   String
+  email                  String                   @unique
+  address                String?
+  number_of_employees    Int?
+  contact_number         String?
+  domain                 String?
+  keywords               String?
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime
+  status                 ClientStatus             @default(ACTIVE)
+  bundle_mappings        bundle_mappings[]
+  employees              employees[]
+  grades_and_departments grades_and_departments[]
+  service_usage_quota    service_usage_quota[]
+
+  @@index([id])
+}
+
+model coupon_mapping {
+  old_id String @id
+  new_id String
+}
+
+model coupons {
+  id             String           @id
+  name           String
+  code           String
+  vendor_id      String
+  plan_id        String
+  description    String
+  created_at     DateTime         @default(now())
+  updated_at     DateTime
+  bundle_details bundle_details[]
+  plans          plans            @relation(fields: [plan_id], references: [id])
+  vendors        vendors          @relation(fields: [vendor_id], references: [id])
+}
+
+model dependent_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model dependents {
+  id               String             @id
+  name             String
+  dob              DateTime?
+  relationship     String?
+  employee_id      String
+  email            String?
+  mobile           String?
+  created_at       DateTime           @default(now())
+  updated_at       DateTime
+  gender           String?
+  employees        employees          @relation(fields: [employee_id], references: [id])
+  employee_address employee_address[]
+  orders_summary   orders_summary[]
+  vendor_users     vendor_users[]
+
+  @@index([employee_id])
+}
+
+model employeeBundleMappingHistory {
+  id          String    @id
+  bundle_id   String
+  employee_id String
+  start_date  DateTime?
+  end_date    DateTime?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime
+}
+
+model employee_address {
+  id           String      @id
+  employee_id  String
+  dependent_id String?
+  address_1    String
+  address_2    String?
+  address_3    String?
+  city         String?
+  state        String?
+  zip_code     String?
+  country      String?
+  lat_long     String?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime
+  dependents   dependents? @relation(fields: [dependent_id], references: [id])
+  employees    employees   @relation(fields: [employee_id], references: [id])
+}
+
+model employee_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model employees {
+  id                    String               @id
+  name                  String
+  nick_name             String?
+  grade                 String
+  department            String
+  employee_code         String?
+  country_code          String?
+  official_email        String?
+  personal_email        String?
+  mobile_number         String?
+  dob                   DateTime?
+  gender                String?
+  marital_status        String?
+  salary                String?
+  address1              String?
+  address2              String?
+  address3              String?
+  city                  String?
+  state                 String?
+  pin                   String?
+  country               String?
+  profile_url           String?
+  profile_image_s3_key  String?
+  lat_long              String?
+  govt_issues_id_type   String?
+  govt_issued_id_no     String?
+  employment_start_date DateTime?
+  employment_end_date   DateTime?
+  policy_number         String?
+  client_id             String
+  bundle_id             String
+  onboarding_date       DateTime?
+  lock                  EmployeeLock
+  status                EmployeeStatus
+  created_at            DateTime             @default(now())
+  updated_at            DateTime
+  dependents            dependents[]
+  employee_address      employee_address[]
+  bundles               bundles              @relation(fields: [bundle_id], references: [id])
+  clients               clients              @relation(fields: [client_id], references: [id])
+  orders_summary        orders_summary[]
+  pets                  pets[]
+  service_usage         service_usage[]
+  user_service_quota    user_service_quota[]
+  vendor_users          vendor_users[]
+
+  @@index([id, client_id, official_email, nick_name, bundle_id])
+}
+
+model escalation_matrix {
+  id               String   @id
+  vendor_id        String
+  escalation_level String
+  designation      String
+  contact_number   String
+  created_at       DateTime @default(now())
+  updated_at       DateTime
+  vendors          vendors  @relation(fields: [vendor_id], references: [id])
+
+  @@index([vendor_id])
+}
+
+model futurisk_employee_dump {
+  id                     String  @id
+  employee_code          String
+  plan_name              String
+  corporate_code         String
+  corporate_name         String
+  login_id               String
+  password               String
+  mobile                 String?
+  relation               String?
+  employee_name          String
+  gender                 String
+  dob                    String?
+  doj                    String?
+  age                    String?
+  location               String?
+  grade                  String?
+  business_unit          String?
+  department             String?
+  designation            String?
+  date_of_insurance      String?
+  sum_insured            String?
+  employee_premium       String?
+  company_premium        String?
+  gste                   String?
+  gstc                   String?
+  topup_sum_insured      String?
+  topup_employee_premium String?
+  topup_gste             String?
+  topup_company_premium  String?
+  topup_gstc             String?
+  insurance_company      String?
+  tpa                    String?
+  tpa_id                 String?
+  e_card                 String?
+  endorse_st             String?
+  endorse_end            String?
+  spoc_email             String?
+  spoc_name              String?
+  spoc_mobile            String?
+
+  @@index([employee_code])
+}
+
+model futurisk_policy_documents {
+  id             String  @id
+  policy_pdf     String?
+  corporate_code String?
+  document_name  String?
+
+  @@index([corporate_code])
+}
+
+model grade_details {
+  id        Int    @id
+  vendor_id Int
+  plan_id   String
+  value     String
+}
+
+model grade_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model grades_and_departments {
+  id         String   @id
+  client_id  String
+  department String
+  grade      String?
+  created_at DateTime @default(now())
+  updated_at DateTime
+  clients    clients  @relation(fields: [client_id], references: [id])
+}
+
+model lookup {
+  id       String @id
+  key_type String
+  code     String @unique
+  value    String
+
+  @@unique([code, value])
+  @@index([code], map: "lookup_code_index")
+}
+
+model orders {
+  id                       Int              @id @default(autoincrement())
+  vendor_order_id          String?
+  service_provider         String?
+  order_status             OrderStatus?
+  is_paid                  Boolean?
+  wallet_redemption_amount Float?
+  is_coupon_applied        Boolean?
+  payment_status           Boolean?
+  delivery_charges         Float?
+  charges                  Float?
+  tax                      Float?
+  tax_value                Float?
+  discount                 Float?
+  total_charges            Float?
+  refund_amount            Float?
+  discount_percentage      Float?
+  actual_cost              Float?
+  location_service_charges Float?
+  transaction_id           Int?
+  created_at               DateTime         @default(now())
+  updated_at               DateTime
+  vendor_order_status      String?
+  orders_summary           orders_summary[]
+}
+
+model orders_summary {
+  id                     Int                      @id @default(autoincrement())
+  patient_id             String?
+  user_id                String
+  full_name              String?
+  schedule_date          String?
+  schedule_time          String?
+  schedule_slot          String?
+  address_line1          String?
+  address_line2          String?
+  address_line3          String?
+  total_charges          Float?
+  order_id               Int
+  created_at             DateTime?                @default(now())
+  updated_at             DateTime
+  service_id             String?
+  dependent_id           String?                  @db.VarChar(255)
+  dependents             dependents?              @relation(fields: [dependent_id], references: [id], onUpdate: NoAction)
+  orders                 orders                   @relation(fields: [order_id], references: [id])
+  services               services?                @relation(fields: [service_id], references: [id])
+  employees              employees                @relation(fields: [user_id], references: [id])
+  orders_summary_details orders_summary_details[]
+
+  @@index([user_id])
+}
+
+model orders_summary_details {
+  id                           Int            @id @default(autoincrement())
+  group_id                     String?
+  service_code                 String?
+  service_name                 String?
+  charges                      Float?
+  tax                          Float?
+  tax_value                    Float?
+  discount                     Float?
+  total_charges                Float?
+  refund_amount                Float?
+  discount_percentage          Float?
+  point                        Float?
+  discounted_mrp               Float?
+  is_coupon_code_applied       Boolean?
+  coupon_not_applicable_remark String?
+  wallet_redemption_amount     Float?
+  order_quantity               Int?
+  order_summary_id             Int
+  created_at                   DateTime       @default(now())
+  updated_at                   DateTime
+  doctor_name                  String?
+  service_provider_name        String?
+  orders_summary               orders_summary @relation(fields: [order_summary_id], references: [id])
+}
+
+model otps {
+  id         String    @id
+  mobile_no  String    @unique
+  otp        String
+  validity   DateTime
+  created_at DateTime  @default(now())
+  updated_at DateTime
+  status     OtpStatus @default(NOT_VERIFIED)
+}
+
+model payments {
+  id                 String         @id
+  payment_gateway    String
+  payment_order_id   String
+  amount             Decimal
+  status             String
+  service_usage_id   String?
+  payment_payment_id String?
+  payment_signature  String?
+  vendor_order_id    String
+  vendor_booking_id  String?
+  refund_id          String?
+  created_at         DateTime       @default(now())
+  updated_at         DateTime
+  service_usage      service_usage? @relation(fields: [service_usage_id], references: [id])
+
+  @@index([id, payment_order_id])
+}
+
+model pet_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model pets {
+  id          String     @id
+  name        String
+  kind        String
+  employee_id String?
+  dob         String?
+  image_url   String?
+  created_at  DateTime   @default(now())
+  updated_at  DateTime
+  employees   employees? @relation(fields: [employee_id], references: [id])
+
+  @@index([employee_id])
+}
+
+model plan_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model plans {
+  id             String           @id
+  name           String
+  description    String?
+  created_at     DateTime         @default(now())
+  updated_at     DateTime
+  bundle_details bundle_details[]
+  coupons        coupons[]
+}
+
+model service_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model service_usage {
+  id             String          @id
+  benefit_id     String?
+  employee_id    String?
+  quantity       Int
+  units          Int
+  date           DateTime
+  credit_debit   String
+  notes          String
+  log            String?
+  created_at     DateTime        @default(now())
+  updated_at     DateTime
+  payments       payments[]
+  bundle_details bundle_details? @relation(fields: [benefit_id], references: [id])
+  employees      employees?      @relation(fields: [employee_id], references: [id])
+
+  @@index([id, employee_id])
+}
+
+model service_usage_mapping {
+  id     Int    @id @default(autoincrement())
+  old_id Int
+  new_id String
+}
+
+model service_usage_quota {
+  id                  String               @id
+  client_id           String
+  bundle_id           String?
+  vendor_service_code String
+  subcategory_id      SubcategoryType
+  vendor_id           String
+  service_usage_limit Int
+  created_at          DateTime             @default(now())
+  updated_at          DateTime
+  quota_type          String?
+  percentage          Int?
+  bundles             bundles?             @relation(fields: [bundle_id], references: [id])
+  clients             clients              @relation(fields: [client_id], references: [id])
+  vendors             vendors              @relation(fields: [vendor_id], references: [id])
+  user_service_quota  user_service_quota[]
+}
+
+model services {
+  id              String           @id
+  name            String
+  category_id     String
+  subcategory_id  String
+  vendor_id       String
+  connection_type String
+  description     String?
+  URL             String?
+  created_at      DateTime         @default(now())
+  updated_at      DateTime
+  banner_ad       banner_ad[]
+  bundle_details  bundle_details[]
+  orders_summary  orders_summary[]
+  categories      categories       @relation(fields: [category_id], references: [id])
+  subcategory     subcategory      @relation(fields: [subcategory_id], references: [id])
+  vendors         vendors          @relation(fields: [vendor_id], references: [id])
+  tile_ad         tile_ad[]
+
+  @@index([vendor_id])
+}
+
+model subcategory {
+  id          String     @id
+  category_id String
+  name        String
+  services    services[]
+  categories  categories @relation(fields: [category_id], references: [id])
+}
+
+model subcategory_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model tile_ad {
+  id          String     @id
+  title       String?
+  description String?
+  category_id String
+  service_id  String
+  image_url   String?
+  route_url   String?
+  promoted    Boolean?
+  created_at  DateTime   @default(now())
+  updated_at  DateTime
+  categories  categories @relation(fields: [category_id], references: [id])
+  services    services   @relation(fields: [service_id], references: [id])
+}
+
+model user_service_quota {
+  id                     String              @id
+  service_restriction_id String
+  employee_id            String
+  service_usage_count    Int
+  created_at             DateTime            @default(now())
+  updated_at             DateTime
+  employees              employees           @relation(fields: [employee_id], references: [id])
+  service_usage_quota    service_usage_quota @relation(fields: [service_restriction_id], references: [id])
+}
+
+model users {
+  id       String @id
+  email    String @unique
+  password String
+}
+
+model vendor_business_info_dtls {
+  id             Int      @id @default(autoincrement())
+  vendor_id      String
+  vendor_name    String?
+  vendor_gstin   String?
+  business_info  String?
+  support_email  String?
+  support_mobile String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime
+  vendors        vendors  @relation(fields: [vendor_id], references: [id])
+
+  @@index([vendor_id])
+}
+
+model vendor_categories {
+  id          String     @id
+  vendor_id   String
+  category_id String
+  created_at  DateTime   @default(now())
+  updated_at  DateTime
+  categories  categories @relation(fields: [category_id], references: [id])
+  vendors     vendors    @relation(fields: [vendor_id], references: [id])
+}
+
+model vendor_documents {
+  id            String   @id
+  vendor_id     String
+  document_type String
+  document_name String
+  url           String
+  created_at    DateTime @default(now())
+  updated_at    DateTime
+  vendors       vendors  @relation(fields: [vendor_id], references: [id])
+
+  @@index([vendor_id])
+}
+
+model vendor_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model vendor_user_mapping {
+  old_id Int    @id
+  new_id String
+}
+
+model vendor_users {
+  id             String      @id
+  vendor_id      String
+  employee_id    String
+  dependent_id   String?
+  vendor_user_id String
+  is_dependent   Boolean?
+  created_at     DateTime    @default(now())
+  updated_at     DateTime
+  dependents     dependents? @relation(fields: [dependent_id], references: [id])
+  employees      employees   @relation(fields: [employee_id], references: [id])
+  vendors        vendors     @relation(fields: [vendor_id], references: [id])
+
+  @@index([vendor_id, employee_id, dependent_id])
+}
+
+model vendors {
+  id                        String                      @id
+  name                      String
+  spoc                      String
+  mobile_no                 String
+  email                     String                      @unique
+  address                   String?
+  gst_no                    String?
+  created_at                DateTime                    @default(now())
+  updated_at                DateTime
+  status                    VendorStatus                @default(ACTIVE)
+  bundle_details            bundle_details[]
+  coupons                   coupons[]
+  escalation_matrix         escalation_matrix[]
+  service_usage_quota       service_usage_quota[]
+  services                  services[]
+  vendor_business_info_dtls vendor_business_info_dtls[]
+  vendor_categories         vendor_categories[]
+  vendor_documents          vendor_documents[]
+  vendor_users              vendor_users[]
+
+  @@index([id])
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EmployeeLock {
+  UNLOCKED
+  LOCKED
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  INVITATION_SENT
+}
+
+enum OrderStatus {
+  CREATED
+  COMPLETED
+  CANCELLED
+}
+
+enum OtpStatus {
+  VERIFIED
+  NOT_VERIFIED
+}
+
+enum SubcategoryType {
+  OPD
+  DIAGNOSTICS_LAB
+  DIAGNOSTICS_PACKAGE
+  DENTAL_CONSULTATION
+  VISION_CONSULTATION
+  VIRTUAL_CONSULTATION
+}
+
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+}
