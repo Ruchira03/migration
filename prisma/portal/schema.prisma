@@ -1,0 +1,2362 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/portal"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------- ORG SCHEMA --------
+enum EmployeePolicies {
+  GMC
+  GPA
+  GTP
+}
+
+enum PolicyGroup {
+  GROUP_INSURANCE
+  COMMERCIAL_INSURANCE
+}
+
+enum FormalRelationship {
+  SELF
+  FATHER
+  MOTHER
+  SPOUSE
+  DAUGHTER
+  SON
+  MOTHER_IN_LAW
+  FATHER_IN_LAW
+  NOT_PROVIDED
+}
+
+// Organization Types
+enum OrganizationType {
+  CORPORATE
+  SCHOOL
+  MICROENTERPRISE
+}
+
+enum GracePeriod {
+  ELW // Employee Last working day
+  EVD // E card validity date
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHERS
+  NOT_PROVIDED
+}
+
+enum EnterpriseCategory {
+  MICRO
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum BusinessType {
+  SOLE_PROPRIETORSHIP
+  ONE_PERSON_COMPANY
+  PARTNERSHIP
+  LIMITED_LIABILITY_PARTNERSHIP
+  PRIVATE_LIMITED_COMPANY
+  PUBLIC_LIMITED_COMPANY
+  NON_PROFIT_COMPANY
+}
+
+enum InvitationStatus {
+  READY
+  SENT
+  ACCEPTED
+  EXPIRED
+}
+
+enum EmployeeStatus {
+  CREATED
+  ENROLLED
+  INACTIVE
+}
+
+model ProspectOrganization {
+  id                 String   @id @default(uuid()) @map("id")
+  prospectCode       String   @unique @map("prospect_code")
+  onboardingData     String   @map("onboarding_data")
+  agentId            String   @map("agent_id")
+  organizationName   String   @map("organization_name")
+  ownerName          String   @map("owner_name")
+  ownerMobile        String   @map("owner_mobile")
+  amountPaid         Float    @map("amount_paid")
+  isPaymentReceived  Boolean  @default(false) @map("is_payment_received")
+  isOnboarded        Boolean  @default(false) @map("is_onboarded")
+  paymentInformation String?  @map("payment_information")
+  createdAt          DateTime @default(now()) @map("created_at")
+  createdBy          String   @map("created_by")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  updatedBy          String   @map("updated_by")
+  organizationId     String?  @unique @map("organization_id")
+
+  Agent        User          @relation(fields: [agentId], references: [userId])
+  Organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@map("prospect_organization")
+}
+
+// Organization Table (Base)
+model Organization {
+  id                String           @id @default(uuid()) @map("id")
+  orgCode           String           @unique @map("org_code")
+  organizationType  OrganizationType @map("organization_type")
+  name              String           @unique @map("name")
+  address           String?          @map("address")
+  countryCode       String?          @map("country_code")
+  state             String?          @map("state")
+  city              String?          @map("city")
+  pincode           String?          @map("pincode")
+  website           String?          @map("website")
+  multiLocation     Boolean          @map("multi_location")
+  intermediary      Boolean          @map("intermediary")
+  spocName          String           @map("spoc_name")
+  spocEmail         String           @map("spoc_email")
+  invitationStatus  InvitationStatus @map("invitation_status")
+  invitationExpiry  DateTime?        @map("invitation_expiry")
+  spocMobile        String           @map("spoc_mobile")
+  consumersToInvite Int              @default(0) @map("consumers_to_invite")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  createdBy         String           @map("created_by")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  updatedBy         String           @map("updated_by")
+
+  Corporates                   Corporate[]
+  Schools                      School[]
+  Microenterprise              Microenterprise?
+  ClientConsumers              ClientConsumer[]
+  Employee                     Employee[]
+  Dependent                    Dependent[]
+  Student                      Student[]
+  Guardian                     Guardian[]
+  BenefitConfiguration         BenefitConfiguration[]
+  InsuranceConfiguration       InsuranceConfiguration[]
+  GeneralConfiguration         GeneralConfiguration[]
+  Grade                        Grade[]
+  Department                   Department[]
+  OrganizationEmployeePolicies OrganizationEmployeePolicy[]
+  Plan                         Plan[]
+  PlanService                  PlanService[]
+  ServiceRestriction           ServiceRestriction[]
+  PlanLog                      PlanLog[]
+  PlanDocument                 PlanDocument[]
+  RulePlanAssignment           RulePlanAssignment[]
+  DefaultplanAssignment        DefaultplanAssignment?
+  PlanAssignment               planAssignment[]
+  PlanAssignmentLog            PlanAssignmentLog[]
+  Policy                       Policy[]
+  PolicyDocument               PolicyDocument[]
+  GmcPolicy                    GmcPolicy[]
+  OCR                          OCR[]
+  Claim                        Claim[]
+  ProspectDetails              ProspectOrganization?
+
+  stateLookUp              StateLookUp?               @relation(fields: [state], references: [stateCode])
+  cityLookUp               CityLookUp?                @relation(fields: [city, state], references: [cityName, stateCode])
+  countryLookUp            CountryLookUp?             @relation(fields: [countryCode], references: [countryCode])
+  Quote                    Quote[]
+  FireBurglaryQuote        FireBurglaryQuote[]
+  AllRiskQuote             AllRiskQuote[]
+  SignboardQuote           SignboardQuote[]
+  ErrorsAndOmissionQuote   ErrorsAndOmissionQuote[]
+  GmcQuote                 GmcQuote[]
+  VendorOrganizationEntity VendorOrganizationEntity[]
+
+  @@unique([id, spocEmail])
+  @@map("organization")
+}
+
+//Configuration table for benefits configuration
+model BenefitConfiguration {
+  id                        String   @id @default(uuid()) @map("id")
+  organizationId            String   @unique @map("organization_id")
+  moduleSubscribed          Boolean  @default(false) @map("module_subscribed")
+  employeeDependentAddition Boolean? @map("employee_dependent_addition")
+  gracePeriod               Int      @map("grace_period")
+  isDefault                 Boolean  @default(true) @map("is_default")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  createdBy                 String   @map("created_by")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+  updatedBy                 String   @map("updated_by")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("benefit_configuration")
+}
+
+//Configuration table for insurance configuration
+model InsuranceConfiguration {
+  id                        String      @id @default(uuid()) @map("id")
+  organizationId            String      @unique @map("organization_id")
+  moduleSubscribed          Boolean     @map("module_subscribed")
+  dependentCategory         String?     @map("dependent_category")
+  employeeDependentAddition Boolean?    @map("employee_dependent_addition")
+  gracePeriod               GracePeriod @map("grace_period")
+  isDefault                 Boolean     @default(true) @map("is_default")
+  createdAt                 DateTime    @default(now()) @map("created_at")
+  createdBy                 String      @map("created_by")
+  updatedAt                 DateTime    @updatedAt @map("updated_at")
+  updatedBy                 String      @map("updated_by")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("insurance_configuration")
+}
+
+//Configuration table for general configuration
+model GeneralConfiguration {
+  id                    String   @id @default(uuid()) @map("id")
+  organizationId        String   @unique @map("organization_id")
+  storage               String?  @map("storage")
+  enableAdvancedReports Boolean  @map("enable_advanced_reports")
+  subscriptionStartDate DateTime @map("subscription_start_date")
+  subscriptionEndDate   DateTime @map("subscription_end_date")
+  isDefault             Boolean  @default(true) @map("is_default")
+  createdAt             DateTime @default(now()) @map("created_at")
+  createdBy             String   @map("created_by")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  updatedBy             String   @map("updated_by")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("general_configuration")
+}
+
+model EmployeePolicy {
+  id                String           @id @default(uuid()) @map("id")
+  policyName        EmployeePolicies @unique @map("policy_name")
+  policyDescription String           @map("policy_description")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  createdBy         String           @map("created_by")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  updatedBy         String           @map("updated_by")
+
+  OrganizationEmployeePolicies OrganizationEmployeePolicy[]
+
+  @@map("employee_policies")
+}
+
+model OrganizationEmployeePolicy {
+  id                 String           @id @default(uuid()) @map("id")
+  organizationId     String           @map("organization_id")
+  employeePolicyName EmployeePolicies @map("employee_policy_name")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  createdBy          String           @map("created_by")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  updatedBy          String           @map("updated_by")
+
+  organization     Organization   @relation(fields: [organizationId], references: [id])
+  employeePolicies EmployeePolicy @relation(fields: [employeePolicyName], references: [policyName])
+
+  @@map("organization_employee_policies")
+}
+
+// Grades of the organization
+model Grade {
+  id             String   @id @default(uuid()) @map("id")
+  grade          String   @map("grade")
+  organizationId String   @map("organization_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  createdBy      String   @map("created_by")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedBy      String   @map("updated_by")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  Employee     Employee[]
+
+  @@unique([organizationId, grade])
+  @@map("grades")
+}
+
+// Department of the organization
+model Department {
+  id             String   @id @default(uuid()) @map("id")
+  department     String   @map("department")
+  organizationId String   @map("organization_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  createdBy      String   @map("created_by")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedBy      String   @map("updated_by")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  Employee     Employee[]
+
+  @@unique([organizationId, department])
+  @@map("departments")
+}
+
+// Corporate Table (Extension of Organization)
+model Corporate {
+  id                 String             @id @default(uuid()) @map("id")
+  gstNo              String?            @map("gst_no")
+  numberOfEmployees  Int                @map("number_of_employees")
+  businessType       BusinessType       @map("business_type")
+  enterpriseCategory EnterpriseCategory @map("enterprise_category")
+  totalTurnOver      Int                @map("total_turn_over")
+  domain             String?            @map("domain")
+  keywords           String?            @map("keywords")
+  organizationId     String             @unique @map("organization_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("corporates")
+}
+
+// School Table (Extension of Organization)
+model School {
+  id               String   @id @default(uuid()) @map("id")
+  numberOfStudents Int      @map("number_of_students")
+  organizationId   String   @unique @map("organization_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  createdBy        String   @map("created_by")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedBy        String   @map("updated_by")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  Students Student[]
+
+  @@map("schools")
+}
+
+model Microenterprise {
+  id                String   @id @default(uuid()) @map("id")
+  numberOfEmployees Int      @map("number_of_employees")
+  industryType      String   @map("industry_type")
+  organizationId    String   @unique @map("organization_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  createdBy         String   @map("created_by")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  updatedBy         String   @map("updated_by")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("microenterprise")
+}
+
+enum ConsumerType {
+  MICRO_OWNER
+  EMPLOYEE
+  DEPENDENT
+  STUDENT
+  GUARDIAN
+}
+
+// Client Consumer Table (Base)
+model ClientConsumer {
+  id               String            @id @default(uuid()) @map("id")
+  firstName        String            @map("first_name")
+  lastName         String            @map("last_name")
+  gender           Gender            @map("gender")
+  dob              DateTime          @map("dob")
+  consumerType     ConsumerType?     @map("consumer_type")
+  invitationStatus InvitationStatus? @map("invitation_status")
+  invitationExpiry DateTime?         @map("invitation_expiry")
+  invitationCode   String?           @map("invitation_code")
+  organizationId   String            @map("organization_id")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  createdBy        String            @map("created_by")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  updatedBy        String            @map("updated_by")
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+
+  Employees                        Employee[]
+  Dependents                       Dependent[]
+  Students                         Student[]
+  Guardians                        Guardian[]
+  planAssignment                   planAssignment?
+  planAssignmentLog                PlanAssignmentLog[]
+  VendorUser                       VendorUser[]
+  ConsumerGroups                   ConsumerGroup[]
+  Pet                              Pet[]
+  ConsumerGroup                    ConsumerGroup[]         @relation(name: "consumer")
+  MobileUserPlans                  MobileUserPlans?
+  consumerPlanWallet               ConsumerPlanWallet[]
+  bookings                         bookings[]
+  orders                           orders[]
+  ConsumerWalletSummary            ConsumerWalletSummary[]
+  bookedForConsumerWalletSummaries ConsumerWalletSummary[] @relation(name: "BookedForRelation")
+  bbxUserAddress                   BbxUserAddress[]
+
+  @@map("client_consumers")
+}
+
+// Consumer Group Table
+model ConsumerGroup {
+  id                String             @id @default(uuid()) @map("id")
+  groupId           String             @map("group_id")
+  relationship      FormalRelationship @map("relationship")
+  primaryConsumerId String             @map("primary_consumer_id")
+  consumerId        String?            @map("consumer_id")
+  description       String?            @map("description")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  primaryConsumer ClientConsumer  @relation(fields: [primaryConsumerId], references: [id])
+  consumer        ClientConsumer? @relation(fields: [consumerId], references: [id], name: "consumer")
+
+  @@unique([groupId, primaryConsumerId, consumerId])
+  @@map("consumer_groups")
+}
+
+// Employee Table (Extension of ClientConsumer)
+model Employee {
+  id                  String         @id @default(uuid()) @map("id")
+  clientConsumerId    String         @unique @map("client_consumer_id")
+  employeeCode        String         @map("employee_code")
+  email               String         @unique @map("email")
+  countryCode         String         @map("country_code")
+  mobile              String?        @map("mobile")
+  employmentStartDate DateTime       @map("employment_start_date")
+  employmentEndDate   DateTime?      @map("employment_end_date")
+  gradeId             String         @map("grade_id")
+  departmentId        String         @map("department_id")
+  status              EmployeeStatus @map("status")
+  organizationId      String         @map("organization_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  grade          Grade          @relation(fields: [gradeId], references: [id])
+  department     Department     @relation(fields: [departmentId], references: [id])
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  clientConsumer ClientConsumer @relation(fields: [clientConsumerId], references: [id])
+  Dependent      Dependent[]
+  Claim          Claim[]
+
+  @@unique([organizationId, employeeCode])
+  @@map("employees")
+}
+
+// Dependent Table (Extension of ClientConsumer)
+model Dependent {
+  id                  String             @id @default(uuid()) @map("id")
+  clientConsumerId    String             @unique @map("client_consumer_id")
+  dependentIdentifier String             @map("dependent_identifier")
+  relationship        FormalRelationship @map("relationship")
+  employeeId          String             @map("employee_id")
+  organizationId      String             @map("organization_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  employee       Employee       @relation(fields: [employeeId], references: [id])
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  clientConsumer ClientConsumer @relation(fields: [clientConsumerId], references: [id])
+
+  @@map("dependents")
+}
+
+// Student Table (Extension of ClientConsumer)
+model Student {
+  id               String    @id @default(uuid()) @map("id")
+  clientConsumerId String    @unique @map("client_consumer_id")
+  rollNumber       String?   @unique @map("roll_number")
+  class            String    @map("class")
+  section          String?   @map("section")
+  dateOfAdmission  DateTime? @map("date_of_admission")
+  schoolId         String    @map("school_id")
+  organizationId   String    @map("organization_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  clientConsumer ClientConsumer @relation(fields: [clientConsumerId], references: [id])
+  school         School         @relation(fields: [schoolId], references: [id])
+  Guardians      Guardian[]
+
+  @@map("students")
+}
+
+// Guardian Table (Extension of ClientConsumer)
+model Guardian {
+  id               String  @id @default(uuid()) @map("id")
+  clientConsumerId String  @unique @map("client_consumer_id")
+  relationship     String? @map("relationship")
+  studentId        String  @map("student_id")
+  email            String? @unique @map("email")
+  mobile           String? @map("mobile")
+  address          String? @map("address")
+  organizationId   String  @map("organization_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  clientConsumer ClientConsumer @relation(fields: [clientConsumerId], references: [id])
+  student        Student        @relation(fields: [studentId], references: [id])
+
+  @@map("guardians")
+}
+
+model CountryLookUp {
+  id          String @id @default(uuid()) @map("id")
+  countryCode String @unique @map("country_code")
+  countryName String @map("country_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  states       StateLookUp[]
+  Organization Organization[]
+
+  @@map("country_lookup")
+}
+
+model StateLookUp {
+  id          String @id @default(uuid()) @map("id")
+  stateCode   String @unique @map("state_code")
+  stateName   String @map("state_name")
+  countryCode String @map("country_code")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  country      CountryLookUp  @relation(fields: [countryCode], references: [countryCode])
+  Organization Organization[]
+  city         CityLookUp[]
+
+  @@map("state_lookup")
+}
+
+model CityLookUp {
+  id        String @id @default(uuid()) @map("id")
+  cityName  String @map("city_name")
+  stateCode String @map("state_code")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  state        StateLookUp    @relation(fields: [stateCode], references: [stateCode])
+  Organization Organization[]
+
+  @@unique([cityName, stateCode])
+  @@map("city_lookup")
+}
+
+// Global Lookup table
+model GlobalLookup {
+  id                String @id @default(uuid()) @map("id")
+  lookupType        String @map("lookup_type")
+  lookupCode        String @unique @map("lookup_code")
+  lookupDescription String @map("lookup_description")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String   @map("updated_by")
+
+  @@map("global_lookup")
+}
+
+// -------- AUTH SCHEMA --------
+
+// User Types
+enum UserType {
+  INTERNALUSER
+  CONSUMER
+  FOS_AGENT
+  WEBPLATFORMUSER
+  BROKER
+}
+
+// Token Types
+enum TokenType {
+  CONSUMERTOKEN
+  WEBPLATFORMTOKEN
+}
+
+// Enums for AuditLog
+enum ActionType {
+  LOGIN
+  SIGNUP
+  PASSWORD_CHANGE
+  LOGOUT
+  FAILED_LOGIN
+}
+
+enum StatusType {
+  SUCCESS
+  FAILURE
+}
+
+enum InvitationStatusType {
+  READY
+  SENT
+  FAILED
+}
+
+// Users Table
+model User {
+  userId        String   @id @default(uuid()) @map("user_id")
+  userType      UserType @map("user_type")
+  email         String   @unique @map("email")
+  name          String?  @map("name")
+  mobile        String?  @map("mobile")
+  role          String?  @map("role")
+  orgId         String?  @map("org_id")
+  cognitoUserId String   @map("cognito_user_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  Prospects             ProspectOrganization[]
+  roles                 UserRole[]
+  userRecommenderResult userRecommenderResults?
+  RecommenderAttributes RecommenderAttributes[]
+
+  @@map("users")
+}
+
+// Roles Table
+model Role {
+  roleId      String   @id @default(uuid()) @map("role_id")
+  roleName    String   @map("role_name")
+  description String?  @map("description")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userRoles   UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+// Permissions Table
+model Permission {
+  permissionId String   @id @default(uuid()) @map("permission_id")
+  module       String   @map("module")
+  operation    String   @map("operation")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+// UserRoles Table
+model UserRole {
+  userRoleId String   @id @default(uuid()) @map("user_role_id")
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [userId])
+  role Role @relation(fields: [roleId], references: [roleId])
+
+  @@map("user_roles")
+}
+
+// RolePermissions Table
+model RolePermission {
+  rolePermissionId String   @id @default(uuid()) @map("role_permission_id")
+  roleId           String   @map("role_id")
+  permissionId     String   @map("permission_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [roleId])
+  permission Permission @relation(fields: [permissionId], references: [permissionId])
+
+  @@map("role_permissions")
+}
+
+//AuditLogs Table
+model AuditLog {
+  id            String     @id @default(uuid()) @map("id")
+  userId        String     @map("user_id")
+  action        ActionType @map("action")
+  status        StatusType @map("status")
+  failureReason String?    @map("failure_reason") // Nullable, only relevant for failure status
+  ipAddress     String     @map("ip_address")
+  timestamp     DateTime   @default(now()) @map("timestamp")
+
+  @@map("audit_log")
+}
+
+// Invitations Table
+model Invitation {
+  invitationId String               @id @default(uuid()) @map("invitation_id")
+  email        String               @unique @map("email")
+  status       InvitationStatusType @map("status")
+  roleId       String               @map("role_id")
+  invitedBy    String               @map("invited_by")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+
+  @@map("invitations")
+}
+
+// -------- BENEFIT SCHEMA --------
+model Category {
+  id        String           @id @default(uuid()) @map("id")
+  name      String           @unique
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  createdBy String           @map("created_by")
+  updatedBy String           @map("updated_by")
+  service   BenefitService[]
+
+  @@index([id])
+  @@map(name: "categories")
+}
+
+model BenefitService {
+  id                 String   @id @default(uuid()) @map("id")
+  name               String   @unique
+  benefitServiceCode String   @unique @map("benefit_service_code")
+  categoryId         String   @map("category_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String   @map("created_by")
+  updatedBy          String   @map("updated_by")
+
+  category             Category               @relation(fields: [categoryId], references: [id])
+  VendorBenefitService VendorBenefitService[]
+
+  @@index([id])
+  @@map(name: "benefit_services")
+}
+
+model Vendor {
+  id                        String                      @id @default(uuid()) @map("id")
+  name                      String                      @unique
+  vendorCode                String                      @unique @map("vendor_code")
+  createdAt                 DateTime                    @default(now()) @map("created_at")
+  updatedAt                 DateTime                    @updatedAt @map("updated_at")
+  createdBy                 String                      @map("created_by")
+  updatedBy                 String                      @map("updated_by")
+  VendorBenefitService      VendorBenefitService[]
+  package                   Package[]
+  VendorBusinessInfoDetails VendorBusinessInfoDetails[]
+  bookings                  bookings[]
+  HealthcareBookingItem     HealthcareBookingItems[]
+  VendorUser                VendorUser[]
+  VendorOrganizationEntity  VendorOrganizationEntity[]
+
+  @@index([id])
+  @@map(name: "vendors")
+}
+
+model VendorBusinessInfoDetails {
+  id            String   @id @default(uuid()) @map("id")
+  vendorId      String   @map("vendor_id")
+  vendorName    String?  @map("vendor_name")
+  vendorGstin   String?  @map("vendor_gstin")
+  businessInfo  String?  @map("business_info")
+  supportEmail  String?  @map("support_email")
+  supportMobile String?  @map("support_mobile")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     String   @map("created_by")
+  updatedBy     String   @map("updated_by")
+
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+
+  @@index([id])
+  @@map(name: "vendor_business_info_details")
+}
+
+model VendorBenefitService {
+  id                String   @id @default(uuid()) @map("id")
+  vendorId          String   @map("vendor_id")
+  serviceId         String   @map("service_id")
+  vendorServiceCode String?  @unique @map("vendor_service_code")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         String   @map("created_by")
+  updatedBy         String   @map("updated_by")
+
+  vendor                Vendor                  @relation(fields: [vendorId], references: [id])
+  service               BenefitService          @relation(fields: [serviceId], references: [id])
+  PackageBenefitService PackageBenefitService[]
+  PlanService           PlanService[]
+
+  @@unique([vendorId, serviceId])
+  @@index([id])
+  @@map(name: "vendor_services")
+}
+
+model Package {
+  id               String  @id @default(uuid()) @map("id")
+  name             String  @unique
+  packageCode      String  @unique @map("package_code")
+  isArchived       Boolean @default(false) @map("is_archived")
+  vendorId         String  @map("vendor_id")
+  currentVersionId String? @unique @map("current_version_id")
+
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  createdBy       String           @map("created_by")
+  updatedBy       String           @map("updated_by")
+  packageVersions PackageVersion[]
+  vendor          Vendor           @relation(fields: [vendorId], references: [id])
+  currentVersion  PackageVersion?  @relation(name: "CurrentVersion", fields: [currentVersionId], references: [id])
+
+  @@map(name: "packages")
+}
+
+model PackageVersion {
+  id                    String                  @id @default(uuid()) @map("id")
+  packageId             String                  @map("package_id")
+  version               Int                     @default(autoincrement())
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt @map("updated_at")
+  createdBy             String                  @map("created_by")
+  updatedBy             String                  @map("updated_by")
+  currentForPackage     Package?                @relation(name: "CurrentVersion")
+  package               Package                 @relation(fields: [packageId], references: [id])
+  packageVendorServices PackageBenefitService[]
+  PlanService           PlanService[]
+  consumerPackageWallet ConsumerPackageWallet[]
+
+  @@unique([packageId, version])
+  @@index([id])
+  @@map(name: "package_versions")
+}
+
+model PackageBenefitService {
+  id               String   @id @default(uuid()) @map("id")
+  vendorServiceId  String   @map("vendor_service_id")
+  packageVersionId String   @map("package_version_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String   @map("created_by")
+  updatedBy        String   @map("updated_by")
+
+  packageVersion PackageVersion       @relation(fields: [packageVersionId], references: [id])
+  vendorService  VendorBenefitService @relation(fields: [vendorServiceId], references: [id])
+
+  @@index([id])
+  @@map(name: "package_services")
+}
+
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}
+
+model Plan {
+  id             String     @id @default(uuid()) @map("id")
+  planCode       String     @unique @map("plan_code")
+  name           String     @unique @map("name")
+  noOfDependents Int        @map("no_of_dependents")
+  status         PlanStatus @map("status")
+  isArchived     Boolean    @default(false) @map("is_archived")
+  startDate      DateTime   @map("start_date")
+  endDate        DateTime   @map("end_date")
+  organizationId String     @map("organization_id")
+  walletSize     Float      @map("wallet_size")
+  archivedBy     String?    @map("archived_by")
+  archivedOn     DateTime?  @map("archived_on")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  createdBy      String     @map("created_by")
+  updatedBy      String     @map("updated_by")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  planServices          PlanService[]
+  planLogs              PlanLog[]
+  planDocuments         PlanDocument[]
+  RulePlanAssignmemt    RulePlanAssignment[]
+  DefaultplanAssignment DefaultplanAssignment?
+  planAssignment        planAssignment[]
+  MobileUserPlans       MobileUserPlans[]
+  consumerPlanWallet    ConsumerPlanWallet[]
+
+  @@index([organizationId, startDate])
+  @@index([isArchived])
+  @@map(name: "plans")
+}
+
+model PlanService {
+  id                String   @id @default(uuid()) @map("id")
+  organizationId    String   @map("organization_id")
+  isPackage         Boolean  @map("is_package")
+  isItem            Boolean? @default(false) @map("is_item")
+  vendorItemCode    String   @default("") @map("vendor_item_code")
+  packageVersionId  String?  @map("package_version_id")
+  vendorPackageCode String?  @map("vendor_package_code")
+  packageWalletSize Float?   @map("package_wallet_size")
+  vendorServiceId   String   @map("vendor_service_id")
+  planId            String   @map("plan_id")
+  startDate         DateTime @map("start_date")
+  endDate           DateTime @map("end_date")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         String   @map("created_by")
+  updatedBy         String   @map("updated_by")
+
+  plan           Plan                 @relation(fields: [planId], references: [id])
+  vendorService  VendorBenefitService @relation(fields: [vendorServiceId], references: [id])
+  packageVersion PackageVersion?      @relation(fields: [packageVersionId], references: [id])
+  organization   Organization         @relation(fields: [organizationId], references: [id])
+
+  serviceRestrictions           ServiceRestriction[]
+  consumerPlanWalletTransaction ConsumerPlanWalletTransaction[]
+  consumerPlanWalletAdjustment  ConsumerPlanServiceWalletAdjustment[]
+  consumerPlanServiceWallet     ConsumerPlanServiceWallet[]
+  bookings                      bookings[]
+  PlanServiceBanner             PlanServiceBanner[]
+  ConsumerWalletSummary         ConsumerWalletSummary[]
+
+  @@unique([planId, vendorServiceId, vendorItemCode])
+  @@map(name: "plan_services")
+}
+
+model ServiceRestriction {
+  id                       String   @id @default(uuid()) @map("id")
+  organizationId           String   @map("organization_id")
+  planServiceId            String   @unique @map("plan_service_id")
+  walletType               String?  @map("wallet_type")
+  serviceWalletSize        Float    @map("service_wallet_size")
+  walletMaxAmt             Float    @map("wallet_max_amt")
+  walletTransactionLimit   Int      @map("wallet_transaction_limit")
+  discount                 Float    @map("discount")
+  discountMaxAmt           Float    @map("discount_max_amt")
+  discountTransactionLimit Int      @map("discount_transaction_limit")
+  cumulativeDiscount       Float    @map("cumulative_discount")
+  markupPercentage         Float?   @default(0) @map("markup_percentage")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+  createdBy                String   @map("created_by")
+  updatedBy                String   @map("updated_by")
+
+  planService  PlanService  @relation(fields: [planServiceId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([planServiceId, organizationId])
+  @@map(name: "service_restrictions")
+}
+
+model PlanLog {
+  id             String   @id @default(uuid()) @map("id")
+  planId         String   @map("plan_id")
+  startDate      DateTime @map("start_date")
+  endDate        DateTime @map("end_date")
+  organizationId String   @map("organization_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String   @map("created_by")
+  updatedBy      String   @map("updated_by")
+
+  plan         Plan         @relation(fields: [planId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map(name: "plan_logs")
+}
+
+model PlanDocument {
+  id             String   @id @default(uuid()) @map("id")
+  planId         String   @map("plan_id")
+  organizationId String   @map("organization_id")
+  documentName   String   @map("document_name")
+  documentS3Key  String   @map("document_s3_key")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String   @map("created_by")
+  updatedBy      String   @map("updated_by")
+
+  plan         Plan         @relation(fields: [planId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map(name: "plan_documents")
+}
+
+model RuleGroup {
+  id                 String               @id @default(uuid()) @map("id")
+  ruleName           String               @map("rule_name")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+  createdBy          String               @map("created_by")
+  updatedBy          String               @map("updated_by")
+  RulePlanAssignmemt RulePlanAssignment[]
+
+  @@map("rule_groups")
+}
+
+model RulePlanAssignment {
+  id             String   @id @default(uuid()) @map("id")
+  organizationId String   @map("organization_id")
+  ruleGroupId    String   @map("rule_group_id")
+  gradeId        String   @map("grade_id")
+  deptId         String   @map("dept_id")
+  planId         String   @map("plan_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String   @map("created_by")
+  updatedBy      String   @map("updated_by")
+
+  plan         Plan         @relation(fields: [planId], references: [id])
+  ruleGroup    RuleGroup    @relation(fields: [ruleGroupId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, gradeId, deptId])
+  @@map(name: "rule_plan_assignments")
+}
+
+model DefaultplanAssignment {
+  id             String   @id @default(uuid()) @map("id")
+  organizationId String   @unique @map("organisation_id")
+  planId         String   @unique @map("plan_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String   @map("created_by")
+  updatedBy      String   @map("updated_by")
+
+  plan         Plan         @relation(fields: [planId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map(name: "default_plan_assignments")
+}
+
+enum AssignmentMode {
+  CUSTOM
+  RULE
+  DEFAULT
+}
+
+model planAssignment {
+  id               String         @id @default(uuid()) @map("id")
+  organizationId   String         @map("organization_id")
+  clientConsumerId String         @unique @map("client_consumer_id")
+  assignmentDate   DateTime       @map("assignment_date")
+  assignmentMode   AssignmentMode @map("assignment_mode")
+  planId           String         @map("plan_id")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  createdBy        String         @map("created_by")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  updatedBy        String         @map("updated_by")
+
+  plan           Plan           @relation(fields: [planId], references: [id])
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  clientConsumer ClientConsumer @relation(fields: [clientConsumerId], references: [id])
+
+  @@unique([organizationId, clientConsumerId])
+  @@index([clientConsumerId])
+  @@index([planId, assignmentMode])
+  @@map("plan_assignment")
+}
+
+model PlanAssignmentLog {
+  id               String         @id @default(uuid()) @map("id")
+  planAssignmentId String?        @map("plan_assignment_id")
+  organizationId   String         @map("organization_id")
+  clientConsumerId String         @map("client_consumer_id")
+  assignmentDate   DateTime       @map("assignment_date")
+  assignmentMode   AssignmentMode @map("assignment_mode")
+  planId           String         @map("plan_id")
+  logMessage       String         @map("log_message")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  createdBy        String         @map("created_by")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  updatedBy        String         @map("updated_by")
+
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  clientConsumer ClientConsumer @relation(fields: [clientConsumerId], references: [id])
+
+  @@index([clientConsumerId])
+  @@index([planId, assignmentMode])
+  @@map("plan_assignment_log")
+}
+
+model ConsumerPlanWallet {
+  id                  String   @id @default(uuid()) @map("id")
+  clientConsumerId    String   @map("client_consumer_id")
+  planId              String   @map("plan_id")
+  isActive            Boolean  @default(true) @map("is_active")
+  currentWalletAmount Float    @map("current_wallet_amount")
+  createdAt           DateTime @default(now()) @map("created_at")
+  createdBy           String   @map("created_by")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  updatedBy           String   @map("updated_by")
+
+  clientConsumer            ClientConsumer                  @relation(fields: [clientConsumerId], references: [id])
+  plan                      Plan                            @relation(fields: [planId], references: [id])
+  consumerPackageWallet     ConsumerPackageWallet[]
+  consumerPlanServiceWallet ConsumerPlanServiceWallet[]
+  consumerPlanWalletLog     ConsumerPlanWalletTransaction[]
+
+  @@index([planId])
+  @@map("consumer_plan_wallets")
+}
+
+model ConsumerPackageWallet {
+  id                   String   @id @default(uuid()) @map("id")
+  consumerPlanWalletId String   @map("consumer_plan_wallet_id")
+  isActive             Boolean  @default(true) @map("is_active")
+  packageVersionId     String   @map("package_version_id")
+  currentWalletAmount  Float    @map("current_wallet_amount")
+  createdAt            DateTime @default(now()) @map("created_at")
+  createdBy            String   @map("created_by")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  updatedBy            String   @map("updated_by")
+
+  consumerPlanWallet ConsumerPlanWallet @relation(fields: [consumerPlanWalletId], references: [id])
+  packageVersion     PackageVersion     @relation(fields: [packageVersionId], references: [id])
+
+  @@map("consumer_package_wallets")
+}
+
+model ConsumerPlanServiceWallet {
+  id                              String   @id @default(uuid()) @map("id")
+  consumerPlanWalletId            String   @map("consumer_plan_wallet_id")
+  isActive                        Boolean  @default(true) @map("is_active")
+  planServiceId                   String   @map("plan_service_id")
+  currentWalletAmount             Float    @map("current_wallet_amount")
+  currentWalletTransactionLimit   Int      @map("current_wallet_transaction_limit")
+  currentDiscountTransactionLimit Int      @map("current_discount_transaction_limit")
+  currentCumulativeDiscount       Float    @map("current_cumulative_discount")
+  createdAt                       DateTime @default(now()) @map("created_at")
+  createdBy                       String   @map("created_by")
+  updatedAt                       DateTime @updatedAt @map("updated_at")
+  updatedBy                       String   @map("updated_by")
+
+  consumerPlanWallet ConsumerPlanWallet @relation(fields: [consumerPlanWalletId], references: [id])
+  planService        PlanService        @relation(fields: [planServiceId], references: [id])
+
+  @@map("consumer_plan_service_wallets")
+}
+
+enum TransactionType {
+  REDUMPTION
+  REFUND
+}
+
+model ConsumerPlanWalletTransaction {
+  id                               String          @id @default(uuid()) @map("id")
+  consumerPlanWalletId             String          @map("consumer_plan_wallet_id")
+  transactionType                  TransactionType @map("transaction_type")
+  planServiceId                    String          @map("plan_service_id")
+  walletTransactionValue           Float?          @map("wallet_transaction_value")
+  previousWalletAmount             Float?          @map("previous_wallet_amount")
+  currentWalletAmount              Float?          @map("current_wallet_amount")
+  previousWallettransactionLimit   Int?            @map("previous_wallet_transaction_limit")
+  currentWalletTransactionLimit    Int?            @map("current_wallet_transaction_limit")
+  previousPlanWalletAmount         Float?          @map("previous_plan_wallet_amount")
+  currentPlanWalletAmount          Float?          @map("current_plan_wallet_amount")
+  previousPackageWalletAmount      Float?          @map("previous_package_wallet_amount")
+  currentPackageWalletAmount       Float?          @map("current_package_wallet_amount")
+  discountTransactionValue         Float?          @map("discount_transaction_value")
+  previousDiscountTransactionLimit Int?            @map("previous_discount_transaction_limit")
+  currentDiscountTransactionLimit  Int?            @map("current_discount_transaction_limit")
+  previousCumulativeDiscount       Float?          @map("previous_cumulative_discount")
+  currentCumulativeDiscount        Float?          @map("current_cumulative_discount")
+  updateMessage                    String?         @map("update_message")
+  createdAt                        DateTime        @default(now()) @map("created_at")
+  createdBy                        String          @map("created_by")
+  updatedAt                        DateTime        @updatedAt @map("updated_at")
+  updatedBy                        String          @map("updated_by")
+
+  consumerPlanWallet           ConsumerPlanWallet                    @relation(fields: [consumerPlanWalletId], references: [id])
+  planService                  PlanService                           @relation(fields: [planServiceId], references: [id])
+  consumerPlanWalletAdjustment ConsumerPlanServiceWalletAdjustment[]
+
+  @@index([consumerPlanWalletId])
+  @@map("consumer_plan_wallet_logs")
+}
+
+model ConsumerPlanServiceWalletAdjustment {
+  id                              String          @id @default(uuid()) @map("id")
+  consumerPlanWalletTransactionId String          @map("consumer_plan_wallet_transaction_id")
+  planServiceId                   String          @map("plan_service_id")
+  transactionType                 TransactionType @map("transaction_type")
+  walletAdjustmentValue           Float           @map("wallet_adjustment_value")
+  previousWalletAmount            Float           @map("previous_wallet_amount")
+  currentWalletAmount             Float           @map("current_wallet_amount")
+  updateMessage                   String?         @map("update_message")
+  createdAt                       DateTime        @default(now()) @map("created_at")
+  createdBy                       String          @map("created_by")
+  updatedAt                       DateTime        @updatedAt @map("updated_at")
+  updatedBy                       String          @map("updated_by")
+
+  planService                   PlanService                   @relation(fields: [planServiceId], references: [id])
+  consumerPlanWalletTransaction ConsumerPlanWalletTransaction @relation(fields: [consumerPlanWalletTransactionId], references: [id])
+
+  @@map("consumer_plan_wallet_adjustments")
+}
+
+model ConsumerWalletSummary {
+  id                        String   @id @default(uuid()) @map("id")
+  clientConsumerId          String   @map("client_consumer_id")
+  planServiceId             String   @map("plan_service_id")
+  vendorItemCode            String?  @map("item_service_code")
+  bookedForClientConsumerId String?  @map("booked_for_client_consumer_id")
+  vendorPrice               Float    @map("vendor_price")
+  totalAmount               Float    @map("total_amount")
+  useWallet                 Boolean  @map("use_wallet")
+  discountPercentage        Float    @map("discount_percentage")
+  markUpPercentage          Float?   @map("mark_up_percentage")
+  discount                  Float    @map("discount")
+  finalAmount               Float    @map("final_amount")
+  isFree                    Boolean  @map("is_free")
+  walletType                String   @map("wallet_type")
+  totalWalletAmount         Float    @map("total_wallet_amount")
+  walletAmountApplied       Float    @map("wallet_amount_applied")
+  walletAmountRemaining     Float    @map("wallet_amount_remaining")
+  currentWalletAmount       Float    @map("current_wallet_amount")
+  limits                    Float?   @map("limits")
+  totalLimits               Float?   @map("total_limits")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  clientConsumer          ClientConsumer  @relation(fields: [clientConsumerId], references: [id])
+  planService             PlanService     @relation(fields: [planServiceId], references: [id])
+  bookedForClientConsumer ClientConsumer? @relation(name: "BookedForRelation", fields: [bookedForClientConsumerId], references: [id])
+
+  @@map("consumer_wallet_summary")
+}
+
+model VendorUser {
+  id               String   @id @default(uuid()) @map("id")
+  vendorId         String   @map("vendor_id")
+  clientConsumerId String   @map("client_consumer_id")
+  vendorUserId     String   @map("vendor_user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  createdBy        String   @map("created_by")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedBy        String   @map("updated_by")
+
+  clientConsumer ClientConsumer @relation(fields: [clientConsumerId], references: [id])
+  vendor         Vendor         @relation(fields: [vendorId], references: [id])
+
+  @@index([vendorId, clientConsumerId])
+  @@map("vendor_users")
+}
+
+model Pet {
+  id               String   @id @default(uuid()) @map("id")
+  name             String   @map("name")
+  kind             String   @map("kind")
+  clientConsumerId String   @map("client_consumer_id")
+  dob              DateTime @map("dob")
+  imageUrl         String?  @map("image_url")
+  createdAt        DateTime @default(now()) @map("created_at")
+  createdBy        String   @map("created_by")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedBy        String   @map("updated_by")
+
+  clientConsumer ClientConsumer @relation(fields: [clientConsumerId], references: [id])
+
+  @@index([clientConsumerId])
+  @@map("pets")
+}
+
+enum BannerSize {
+  SQUARE
+  SLIM
+}
+
+model BannerAd {
+  id                String              @id @default(uuid()) @map("id")
+  title             String              @map("title")
+  description       String?             @map("description")
+  size              BannerSize          @map("size")
+  imageUrl          String              @map("image_url")
+  isPromoted        Boolean             @map("is_promoted")
+  isService         Boolean             @map("is_service")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  createdBy         String              @map("created_by")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  updatedBy         String              @map("updated_by")
+  isForAll          Boolean             @default(false) @map("is_for_all")
+  planServiceBanner PlanServiceBanner[]
+
+  @@map("banner_ads")
+}
+
+model PlanServiceBanner {
+  id            String @id @default(uuid()) @map("id")
+  bannerId      String @map("banner_id")
+  planServiceId String @map("plan_service_id")
+
+  banner      BannerAd    @relation(fields: [bannerId], references: [id])
+  planService PlanService @relation(fields: [planServiceId], references: [id])
+
+  @@map("plan_service_banner")
+}
+
+model BerryBoxUser {
+  id            String    @id @default(uuid()) @map("id")
+  bbxUserId     String    @unique @map("bbx_user_id")
+  mobile        String    @unique @map("mobile")
+  firstName     String?   @map("first_name")
+  lastName      String?   @map("last_name")
+  dob           DateTime? @map("dob")
+  gender        Gender?   @map("gender")
+  personalEmail String?   @map("personal_email")
+  cognitoUserId String?   @unique @map("cognito_user_id")
+  pinCode       String?   @map("pin_code")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  createdBy     String    @map("created_by")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  updatedBy     String    @map("updated_by")
+
+  MobileUserPlans MobileUserPlans[]
+  BbxUserAddress  BbxUserAddress[]
+  orders          orders[]
+
+  @@map("berry_box_users")
+}
+
+model MobileUserPlans {
+  id               String   @id @default(uuid()) @map("id")
+  bbxUserId        String   @map("bbx_user_id")
+  clientConsumerId String   @unique @map("client_consumer_id")
+  planId           String   @map("plan_id")
+  planTag          String   @map("plan_tag")
+  createdAt        DateTime @default(now()) @map("created_at")
+  createdBy        String   @map("created_by")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedBy        String   @map("updated_by")
+
+  user           BerryBoxUser   @relation(fields: [bbxUserId], references: [bbxUserId])
+  plan           Plan           @relation(fields: [planId], references: [id])
+  clientConsumer ClientConsumer @relation(fields: [clientConsumerId], references: [id])
+
+  @@unique([bbxUserId, planId])
+  @@index([bbxUserId])
+  @@map("mobile_user_plans")
+}
+
+model BbxUserAddress {
+  id               String   @id @default(uuid()) @map("id")
+  bbxUserId        String?  @map("bbx_user_id")
+  clientConsumerId String?  @map("client_consumer_id")
+  isPrimary        Boolean? @map("is_primary")
+  address1         String   @map("address_1")
+  address2         String?  @map("address_2")
+  address3         String?  @map("address_3")
+  city             String?  @map("city")
+  state            String?  @map("state")
+  zipCode          String?  @map("zip_code")
+  country          String?  @map("country")
+  latLong          String?  @map("lat_long")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String   @map("created_by")
+  updatedBy        String   @map("updated_by")
+
+  bbxUser        BerryBoxUser?   @relation(fields: [bbxUserId], references: [bbxUserId])
+  clientConsumer ClientConsumer? @relation(fields: [clientConsumerId], references: [id])
+
+  @@map("bbx_user_address")
+}
+
+model FuturiskPolicyDocument {
+  id            String   @id @default(uuid()) @map("id")
+  policyPdf     String?  @map("policy_pdf")
+  corporateCode String?  @map("corporate_code")
+  documentName  String?  @map("document_name")
+  createdAt     DateTime @default(now()) @map("created_at")
+  createdBy     String   @map("created_by")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  updatedBy     String   @map("updated_by")
+
+  @@index([corporateCode])
+  @@map("futurisk_policy_documents")
+}
+
+model FuturiskEmployeeDump {
+  id                   String   @id @default(uuid()) @map("id")
+  employeeCode         String   @map("employee_code")
+  planName             String   @map("plan_name")
+  corporateCode        String   @map("corporate_code")
+  corporateName        String   @map("corporate_name")
+  loginId              String   @map("login_id")
+  password             String   @map("password")
+  mobile               String?  @map("mobile")
+  relation             String?  @map("relation")
+  dob                  String?  @map("dob")
+  doj                  String?  @map("doj")
+  age                  String?  @map("age")
+  location             String?  @map("location")
+  grade                String?  @map("grade")
+  businessUnit         String?  @map("business_unit")
+  department           String?  @map("department")
+  designation          String?  @map("designation")
+  dateOfInsurance      String?  @map("date_of_insurance")
+  sumInsured           String?  @map("sum_insured")
+  employeePremium      String?  @map("employee_premium")
+  companyPremium       String?  @map("company_premium")
+  gste                 String?  @map("gste")
+  gstc                 String?  @map("gstc")
+  topupSumInsured      String?  @map("topup_sum_insured")
+  topupEmployeePremium String?  @map("topup_employee_premium")
+  topupGste            String?  @map("topup_gste")
+  topupCompanyPremium  String?  @map("topup_company_premium")
+  topupGstc            String?  @map("topup_gstc")
+  insuranceCompany     String?  @map("insurance_company")
+  tpa                  String?  @map("tpa")
+  tpaId                String?  @map("tpa_id")
+  eCard                String?  @map("e_card")
+  endorseSt            String?  @map("endorse_st")
+  endorseEnd           String?  @map("endorse_end")
+  spocEmail            String?  @map("spoc_email")
+  spocName             String?  @map("spoc_name")
+  spocMobile           String?  @map("spoc_mobile")
+  employeeName         String   @map("employee_name")
+  gender               String   @map("gender")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  createdBy            String   @map("created_by")
+  updatedBy            String   @map("updated_by")
+
+  @@index([employeeCode])
+  @@map("futurisk_employee_dumps")
+}
+
+// -------- INSURANCE SCHEMA --------
+enum InsuraceType {
+  RISK
+  LIABILITY
+}
+
+enum ProductRecommendationType {
+  MUST_HAVE
+  GOOD_TO_HAVE
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum DocumentType {
+  ADMIN_COPY
+  SUPPORTING_DOCUMENT
+}
+
+enum CoverType {
+  FLOATER
+  INDIVIDUAL
+  MAIN_FLOATER
+}
+
+enum PolicyType {
+  GMC
+  GPA
+  GTP
+  SIGNBOARD
+  ALL_RISK
+  FIRE_AND_BURGLARY
+  ERRORS_AND_OMISSIONS
+}
+
+enum CoverageStatus {
+  ROLLOVER
+  RENEWAL
+}
+
+enum FrequencyOfPayment {
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+}
+
+enum FamilyDefinition {
+  SELF
+  SELF_SPOUSE
+  SELF_SPOUSE_2_CHILDREN
+  SELF_SPOUSE_2_CHILDREN_2_PARENTS
+  SELF_SPOUSE_UPTO_6_CHILDREN
+  SELF_SPOUSE_UPTO_4_CHILDREN_2_PARENTS
+}
+
+enum IndustryCategoryType {
+  TECHNOLOGY
+  MISCELLANEOUS
+  CONSTRUCTION
+}
+
+model Lov {
+  id        String   @id @default(uuid())
+  type      String
+  code      String?
+  value     String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([type])
+  @@map("lov")
+}
+
+model InsuranceProduct {
+  id        String       @id @default(uuid())
+  name      String       @unique
+  type      InsuraceType
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  productRecommendationType ProductRecommendationType @map("product_recommendation_type")
+  productFeatures           InsuranceProductFeatures? @relation("ProductFeatures")
+
+  industryProductCoverages IndustryProductCoverage[]
+
+  @@map("insurance_product")
+}
+
+model InsuranceProductFeatures {
+  id         String   @id @default(uuid())
+  productId  String   @unique @map("product_id")
+  inclusions String   @db.Text
+  exclusions String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  insuranceProduct InsuranceProduct @relation(fields: [productId], references: [id], name: "ProductFeatures")
+
+  @@index([productId])
+  @@map("insurance_product_features")
+}
+
+model Industries {
+  id          String   @id @default(uuid())
+  iibCode     String   @unique @map("iib_code")
+  section     Int
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rate Rates? @relation("IndustryRate")
+
+  IndustryProductCoverage IndustryProductCoverage[]
+  IndustryEntity          IndustryEntity[]
+
+  @@map("industries")
+}
+
+model IndustryEntity {
+  id                   String                @id @default(uuid())
+  name                 String                @unique
+  iibCode              String                @map("iib_code")
+  industry             Industries            @relation(fields: [iibCode], references: [iibCode])
+  industryCategoryType IndustryCategoryType? @map("industry_category_type")
+  category             IndustryCategory?     @relation(fields: [industryCategoryType], references: [type])
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+
+  RecommenderAttributes RecommenderAttributes[]
+  RecommenderFormValues RecommenderFormValues[]
+
+  @@map("industry_entity")
+}
+
+model IndustryCategory {
+  id                                String                              @id @default(uuid())
+  type                              IndustryCategoryType                @unique
+  EOInsuranceRecommendationRateGrid EOInsuranceRecommendationRateGrid[]
+  IndustryEntity                    IndustryEntity[]
+
+  @@map("industry_category")
+}
+
+model EOInsuranceRecommendationRateGrid {
+  id                   String               @id @default(uuid())
+  industryCategoryType IndustryCategoryType @map("industry_category_type")
+  industryCategory     IndustryCategory     @relation(fields: [industryCategoryType], references: [type])
+  limitOfLiability     Decimal              @map("limit_of_liability")
+  rate                 Float
+
+  @@unique([industryCategoryType, limitOfLiability])
+  @@map("eo_insurance_recommendation_rate_grid")
+}
+
+model RecommenderAttributes {
+  id               String         @id @default(uuid())
+  userId           String         @unique @map("user_id")
+  user             User           @relation(fields: [userId], references: [userId])
+  industryEntityId String         @map("industry_entity_id")
+  industryEntity   IndustryEntity @relation(fields: [industryEntityId], references: [id])
+  noOfEmployees    Int
+  pincode          String
+  isPropertyLeased Boolean        @map("is_property_leased")
+  hasImportExport  Boolean        @map("has_import_export")
+  limitOfLiability String         @map("limit_of_liability")
+  annualTurnover   String         @map("annual_turnover")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("recommender_attributes")
+}
+
+model IndustryProductCoverage {
+  id           String       @id @default(uuid())
+  industryId   String       @map("industry_id")
+  productId    String       @map("product_id")
+  isCovered    Boolean      @map("is_covered")
+  recordStatus RecordStatus @map("record_status")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  industries       Industries        @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  insuranceProduct InsuranceProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  OverridingRule   OverridingRules[]
+
+  @@unique([industryId, productId])
+  @@map("industry_product_coverage")
+}
+
+model OverridingRules {
+  id                     Int    @id @default(autoincrement())
+  industryProdCoverageId String @map("industry_prod_coverage")
+  ruleDescription        String
+
+  industryCoverage IndustryProductCoverage @relation(fields: [industryProdCoverageId], references: [id], onDelete: Cascade)
+
+  @@map("overriding_rules")
+}
+
+model Rates {
+  id            String   @id @default(uuid())
+  industryId    String   @unique @map("industry_id")
+  flexaRate     Float    @map("flexa_rate")
+  stfiRate      Float    @map("stfi_rate")
+  terrorismRate Float    @map("terrorism_rate")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  industries Industries @relation(fields: [industryId], references: [id], name: "IndustryRate")
+
+  @@map("rates")
+}
+
+model AnnualTurnover {
+  id                String   @id @default(uuid())
+  turnoverRange     String   @map("turnover_range")
+  lowOption         String   @map("low_option")
+  lowOptionValue    BigInt   @map("low_option_value")
+  mediumOption      String   @map("medium_option")
+  mediumOptionValue BigInt   @map("medium_option_value")
+  highOption        String   @map("high_option")
+  highOptionValue   BigInt   @map("high_option_value")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("annual_turnover")
+}
+
+model PincodeZoneMapping {
+  id        String   @id @default(uuid())
+  district  String
+  state     String
+  pincode   String
+  eqZone    String   @map("eq_zone")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([pincode])
+  @@map("pincode_zones_mapping")
+}
+
+model EQZone {
+  id                   String   @id @default(uuid())
+  zoneName             String   @unique @map("zone_name")
+  eqRateExceptSection3 Float    @map("eq_rate_except_section3")
+  section3Rate         Float    @map("section_3_rate")
+  roadTandDRate        Float    @map("road_t_and_d_rate")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("zonewise_eqrates")
+}
+
+model userRecommenderResults {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  results   Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  User User @relation(fields: [userId], references: [userId])
+
+  @@index([userId])
+  @@map("user_recommender_results")
+}
+
+model PolicyDocument {
+  id             String       @id @default(uuid()) @map("id")
+  organizationId String       @map("organization_id")
+  documentName   String       @map("document_name")
+  documentType   DocumentType @map("document_type")
+  adminPolicyId  String?      @map("admin-policy_id")
+  documentS3Key  String       @map("document_s3_key")
+  policyType     PolicyType?  @map("policy_type")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  createdBy      String       @map("created_by")
+  updatedBy      String       @map("updated_by")
+  Policy         Policy[]
+  OCR            OCR[]
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map(name: "policy_documents")
+}
+
+model OCR {
+  id                String  @id @default(uuid()) @map("id")
+  acknowledgementId String? @map("acknowledgment_id")
+  organizationId    String  @map("organization_id")
+  policyDocumentId  String  @unique @map("policy_document_id")
+  resultJson        Json?   @map("result_json")
+  errorMessage      String? @map("error_message")
+  progressStatus    Int     @default(0) @map("progress_status")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  policyDocument PolicyDocument @relation(fields: [policyDocumentId], references: [id])
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, policyDocumentId, acknowledgementId])
+  @@map("ocr")
+}
+
+model Policy {
+  id                  String       @id @default(uuid())
+  policyNumber        String?      @map("policy_number")
+  organizationId      String?      @map("organization_id")
+  policyIssuerName    String?      @map("policy_issuer_name")
+  tpaName             String?      @map("tpa_name")
+  brokerName          String?      @map("broker_name")
+  policyType          PolicyType?  @map("policyType")
+  policyGroup         PolicyGroup? @map("policy_group")
+  policyStartDate     DateTime?    @map("policy_start_date")
+  policyEndDate       DateTime?    @map("policy_end_date")
+  policyHolderName    String?      @map("policy_holder_name")
+  policyHolderAddress String?      @map("policy_holder_address")
+  policyHolderGST     String?      @map("policy_holder_gst")
+  policyDocumentId    String?      @map("policy_document_id")
+  totalPremiumValue   Float?       @map("total_premium_value")
+  totalSumInsured     Float?       @map("total_sum_insured")
+  insuredName         String?      @map("insured_name")
+
+  parentId    String?  @map("parent_id")
+  isConfirmed Boolean? @default(false) @map("is_confirmed")
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  policyDocument PolicyDocument? @relation(fields: [policyDocumentId], references: [id])
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
+
+  GmcPolicy GmcPolicy[]
+  Claim     Claim[]
+  Quote     Quote[]
+
+  @@unique([policyNumber, parentId])
+  @@map("policy")
+}
+
+model GmcPolicy {
+  id                 String              @id @default(uuid())
+  policyId           String?             @unique @map("policy_id")
+  organizationId     String?             @map("organization_id")
+  coverType          CoverType?          @map("cover_type")
+  coverageStatus     CoverageStatus?     @map("coverage_status")
+  totalLives         Int?                @map("total_lives")
+  totalEmployees     Int?                @map("total_employees")
+  totalDependents    Int?                @map("total_dependents")
+  totalFamilies      Int?                @map("total_families")
+  frequencyOfPayment FrequencyOfPayment? @map("frequency_of_payment")
+  familyDefinition   FamilyDefinition?   @map("family_definition")
+  employeeAgeLimit   Int?                @map("employee_age_limit")
+  spouseAgeLimit     Int?                @map("spouse_age_limit")
+  childAgeLimit      Int?                @map("child_age_limit")
+  parentAgeLimit     Int?                @map("parent_age_limit")
+  parentId           String?             @map("parent_id")
+  isConfirmed        Boolean?            @default(false) @map("is_confirmed")
+  createdAt          DateTime?           @default(now()) @map("created_at")
+  updatedAt          DateTime?           @updatedAt @map("updated_at")
+  createdBy          String?             @map("created_by")
+  updatedBy          String?             @map("updated_by")
+
+  Policy                 Policy?                  @relation(fields: [policyId], references: [id])
+  organization           Organization?            @relation(fields: [organizationId], references: [id])
+  sumInsuredDistribution SumInsuredDistribution[]
+  GmcPolicyBenefits      GmcPolicyBenefits[]
+  GmcQuote               GmcQuote[]
+
+  @@unique([policyId, parentId])
+  @@map("gmc_policy")
+}
+
+model SumInsuredDistribution {
+  id                String   @id @default(uuid())
+  employeeGroupName String?  @map("employee_group_name")
+  sumInsuredValue   Int?     @map("sum_insured_value")
+  numberOfLives     Int?     @map("number_of_lives")
+  gmcPolicyId       String?  @map("gmc_policy_id")
+  parentId          String?  @map("parent_id")
+  isConfirmed       Boolean? @default(false) @map("is_confirmed")
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  gmcPolicy GmcPolicy? @relation(fields: [gmcPolicyId], references: [id])
+
+  @@map("sum_insured_distribution")
+}
+
+model GmcPolicyBenefits {
+  id                       String   @id @default(uuid())
+  preExistingDiseaseClause Boolean? @map("pre_existing_disease_clause")
+  firstYearExclusionWaived Boolean? @map("first_year_exclusion_waived")
+  waitingPeriod30Days      Boolean? @map("waiting_period_30_days")
+  maternityNormal          Int?     @map("maternity_normal")
+  maternityCSection        Int?     @map("maternity_c_section")
+  roomRentNormal           Int?     @map("room_rent_normal")
+  roomRentIcu              Int?     @map("room_rent_icu")
+  newBornBabyDay1Cover     Boolean? @map("new_born_baby_day1_cover")
+  dayCareProcedures        Boolean? @map("day_care_procedures")
+  corporateBuffer          Int?     @map("corporate_buffer")
+  copaymentClause          Int?     @map("copayment_clause")
+  preHospitalisationCover  Int?     @map("pre_hospitalisation_cover")
+  postHospitalisationCover Int?     @map("post_hospitalisation_cover")
+  ambulanceCover           Int?     @map("ambulance_cover")
+  maternityWaitingPeriod   Boolean? @map("maternity_waiting_period")
+  claimsSubmissionDeadline Int?     @map("claims_submission_deadline")
+  requiredDocuments        String?  @map("required_documents")
+  documentsSubmissionDays  Int?     @map("documents_submission_days")
+  gmcPolicyId              String?  @map("gmc_policy_id")
+  parentId                 String?  @map("parent_id")
+  isConfirmed              Boolean? @default(false) @map("is_confirmed")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  gmcPolicy GmcPolicy? @relation(fields: [gmcPolicyId], references: [id])
+
+  @@map("gmc_policy_benefits")
+}
+
+model GMCPremiumRates {
+  id               String           @id @default(uuid())
+  familyDefinition FamilyDefinition @map("family_definition")
+  rangeStart       Int              @map("range_start")
+  rangeEnd         Int              @map("range_end")
+  sumInsured       Int              @map("sum_insured")
+  premiumAmount    Int              @map("premium_amount")
+
+  @@index([premiumAmount])
+  @@map("gmc_premium_rates")
+}
+
+enum InsuredGender {
+  MALE
+  FEMALE
+  THIRD_GENDER
+}
+
+enum InsuredRelationWithEmployee {
+  SELF
+  SPOUSE
+  DAUGHTER
+  SON
+  FATHER
+  MOTHER
+  FATHER_IN_LAW
+  MOTHER_IN_LAW
+  OTHER
+}
+
+enum ClaimType {
+  CASHLESS
+  REIMBURSEMENT
+}
+
+enum ClaimStatus {
+  OUTSTANDING
+  SETTLED
+  DENIED
+}
+
+model Claim {
+  id                              String                      @id @default(uuid())
+  policyId                        String                      @map("policy_id")
+  organizationId                  String                      @map("organization_id")
+  claimId                         String                      @map("claim_id")
+  employeeId                      String?                     @map("employee_id")
+  employeeCode                    String                      @map("employee_code")
+  employeeFirstName               String                      @map("employee_first_name")
+  employeeLastName                String                      @map("employee_last_name")
+  claimReceivedDate               DateTime                    @map("claim_receive_date")
+  claimSettledDate                DateTime                    @map("claim_settled_date")
+  claimedAmount                   Float                       @map("claimed_amount")
+  approvedAmount                  Float                       @map("approved_amount")
+  incurredAmount                  Float                       @map("incurred_amount")
+  claimStatus                     ClaimStatus                 @map("claim_status")
+  claimType                       ClaimType                   @map("claim_type")
+  insuredMemberId                 String                      @map("insured_member_id")
+  insuredName                     String                      @map("insured_name")
+  insuredGender                   InsuredGender               @map("insured_gender")
+  insuredRelationshipWithEmployee InsuredRelationWithEmployee @map("insured_relation_with_employee")
+  insuredAge                      Int                         @map("insured_age")
+  insuranceCompanyName            String                      @map("insurance_company_name")
+  insuredSumInsured               Float                       @map("insured_sum_insured")
+  balanceSumInsured               Float                       @map("balance_sum_insured")
+  dateOfAdmission                 DateTime                    @map("date_of_admission")
+  dateOfDischarge                 DateTime                    @map("date_of_discharge")
+  icdGroup                        String                      @map("icd_group")
+  icdCode                         String                      @map("icd_code")
+  hospitalName                    String                      @map("hospital_name")
+  hospitalCity                    String                      @map("hospital_city")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  policy       Policy       @relation(fields: [policyId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  employee     Employee?    @relation(fields: [employeeId], references: [id])
+
+  @@unique([organizationId, claimId])
+  @@map("claims")
+}
+
+enum QuoteStatus {
+  SUBMITTED
+  DRAFT
+}
+
+model Quote {
+  id             String      @id @default(uuid())
+  organizationId String      @map("organization_id")
+  policyId       String?     @map("policy_id")
+  policyType     PolicyType  @map("policy_type")
+  quoteCode      String      @unique @map("quote_code")
+  premium        Float       @map("premium")
+  status         QuoteStatus @map("status")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  policy       Policy?      @relation(fields: [policyId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  gmcQuote               GmcQuote?
+  fireBurglaryQuote      FireBurglaryQuote?
+  allRiskQuote           AllRiskQuote?
+  signboardQuote         SignboardQuote?
+  errorsAndOmissionQuote ErrorsAndOmissionQuote?
+  recommenderFormValues  RecommenderFormValues?
+
+  @@map("quotes")
+}
+
+model RecommenderFormValues {
+  id      String @id @default(uuid())
+  quoteId String @unique @map("quote_id")
+
+  totalEmployees   Int     @map("total_employees")
+  industryEntityId String  @map("industry_entity_id")
+  isPropertyLeased Boolean @map("is_property_leased")
+  pincode          String
+  limitOfLiability String  @map("limit_of_liability")
+  annualTurnover   String  @map("annual_turnover")
+  hasImportExport  Boolean @map("has_import_export")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  industryEntity IndustryEntity @relation(fields: [industryEntityId], references: [id])
+  quote          Quote          @relation(fields: [quoteId], references: [id])
+
+  @@map("recommender_form_values")
+}
+
+model FireBurglaryQuote {
+  id             String @id @default(uuid())
+  quoteId        String @unique @map("quote_id")
+  organizationId String @map("organization_id")
+
+  sumInsured                       Float @map("sum_insured")
+  buildingCoveredPercentage        Float @map("building_covered_percentage")
+  contentAndStockCoveredPercentage Float @map("content_and_stock_covered_percentage")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  quote        Quote        @relation(fields: [quoteId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("fire_burglary_quotes")
+}
+
+model AllRiskQuote {
+  id             String @id @default(uuid())
+  quoteId        String @unique @map("quote_id")
+  organizationId String @map("organization_id")
+
+  sumInsured Float @map("sum_insured")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  quote        Quote        @relation(fields: [quoteId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("all_risk_quotes")
+}
+
+model SignboardQuote {
+  id             String @id @default(uuid())
+  quoteId        String @unique @map("quote_id")
+  organizationId String @map("organization_id")
+
+  sumInsured Float @map("sum_insured")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  quote        Quote        @relation(fields: [quoteId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("signboard_quotes")
+}
+
+model ErrorsAndOmissionQuote {
+  id             String @id @default(uuid())
+  quoteId        String @unique @map("quote_id")
+  organizationId String @map("organization_id")
+
+  limitOfLiability String @map("limit_of_liability")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  quote        Quote        @relation(fields: [quoteId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("errors_and_omission_quotes")
+}
+
+model GmcQuote {
+  id             String  @id @default(uuid())
+  quoteId        String  @unique @map("quote_id")
+  organizationId String  @map("organization_id")
+  gmcPolicyId    String? @map("gmc_policy_id")
+
+  totalLives       Int?             @map("total_lives")
+  totalEmployees   Int?             @map("total_employees")
+  totalDependents  Int?             @map("total_dependents")
+  incurredClaims   Float?           @map("incurred_claims")
+  maxSumInsured    Float            @map("max_sum_insured")
+  familyDefinition FamilyDefinition @map("family_definition")
+
+  preExistingDiseaseClause Boolean? @map("pre_existing_disease_clause")
+  firstYearExclusionWaived Boolean? @map("first_year_exclusion_waived")
+  waitingPeriod30Days      Boolean? @map("waiting_period_30_days")
+  maternityNormal          Int?     @map("maternity_normal")
+  maternityCSection        Int?     @map("maternity_c_section")
+  newBornBabyDay1Cover     Boolean? @map("new_born_baby_day1_cover")
+  dayCareProcedures        Boolean? @map("day_care_procedures")
+  corporateBuffer          Int?     @map("corporate_buffer")
+  copaymentClause          Int?     @map("copayment_clause")
+  preHospitalisationCover  Int?     @map("pre_hospitalisation_cover")
+  postHospitalisationCover Int?     @map("post_hospitalisation_cover")
+  ambulanceCover           Int?     @map("ambulance_cover")
+  maternityWaitingPeriod   Boolean? @map("maternity_waiting_period")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+  updatedBy String   @map("updated_by")
+
+  gmcPolicy    GmcPolicy?   @relation(fields: [gmcPolicyId], references: [id])
+  quote        Quote        @relation(fields: [quoteId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("gmc_quotes")
+}
+
+//--- OMS Tables
+
+enum OrderPaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum BookingStatus {
+  CREATED
+  CANCELLED
+  NOTIFIED_VENDOR
+  COMPLETED
+  FAILED
+  ACTIVE
+}
+
+enum BookingType {
+  HEALTHCARE
+}
+
+enum HealthcareVisitType {
+  HOME_VISIT
+  CENTER_VISIT
+  VIRTUAL
+}
+
+model orders {
+  id                       String         @id @default(uuid())
+  bbxUserId                String         @map("bbx_user_id")
+  bookedByClientConsumerId String         @map("booked_by_client_consumer_id")
+  createdAt                DateTime       @default(now()) @map("created_at")
+  updatedAt                DateTime       @updatedAt @map("updated_at")
+  berryboxUser             BerryBoxUser   @relation(fields: [bbxUserId], references: [id])
+  clientConsumer           ClientConsumer @relation(fields: [bookedByClientConsumerId], references: [id])
+  bookings                 bookings[]
+  payment                  payments?
+
+  @@index([bbxUserId])
+  @@map("orders")
+}
+
+model bookings {
+  id                        String              @id @unique
+  bookedForClientConsumerId String              @map("booked_for_client_consumer_id")
+  orderId                   String              @map("order_id")
+  status                    BookingStatus       @map("booking_status")
+  vendorId                  String              @map("vendor_id")
+  vendorUserId              String?             @map("vendor_user_id")
+  planServiceId             String              @map("plan_service_id")
+  vendorOrderId             String?             @map("vendor_order_id")
+  type                      BookingType         @map("order_type")
+  amount                    Float               @map("amount")
+  fulfillmentDate           DateTime?           @map("fulfillment_date")
+  createdAt                 DateTime            @default(now()) @map("created_at")
+  updatedAt                 DateTime            @updatedAt @map("updated_at")
+  vendor                    Vendor              @relation(fields: [vendorId], references: [id])
+  orders                    orders              @relation(fields: [orderId], references: [id])
+  planService               PlanService         @relation(fields: [planServiceId], references: [id])
+  clientConsumer            ClientConsumer      @relation(fields: [bookedForClientConsumerId], references: [id])
+  healthcareBookings        healthcareBookings?
+  refunds                   refunds?
+  paymentMethods            paymentMethods[]
+
+  @@index([orderId], name: "idx_orderId")
+  @@index([vendorId, vendorOrderId], name: "vendorId_vendorOrderId")
+  @@map("bookings")
+}
+
+model healthcareBookings {
+  id                     String                 @id @default(uuid())
+  bookingId              String                 @unique @map("booking_id")
+  healthcareItemId       String                 @map("healthcare_booking_id")
+  doctorName             String?                @map("doctor_name")
+  centerName             String?                @map("center_name")
+  centerAddress          String?                @map("center_address")
+  centerId               String?                @map("center_id")
+  vendorOrderStatus      String?                @map("vendor_order_status")
+  slot                   String?                @map("slot")
+  appointmentDate        DateTime               @map("appointment_date")
+  actualAmount           Float                  @map("actual_amount")
+  walletAppliedAmount    Float                  @map("wallet_applied_amount")
+  discountAppliedAmount  Float                  @map("discount_applied_amount")
+  finalAmount            Float                  @map("final_amount")
+  prescriptionUrl        String?                @map("prescription_url")
+  visitType              HealthcareVisitType    @map("visit_type")
+  isInstantBooking       Boolean                @default(false) @map("is_instant_booking")
+  userAddress            String?                @map("user_address")
+  createdAt              DateTime               @default(now()) @map("created_at")
+  updatedAt              DateTime               @updatedAt @map("updated_at")
+  bookings               bookings               @relation(fields: [bookingId], references: [id])
+  healthcareBookingItems HealthcareBookingItems @relation(fields: [healthcareItemId], references: [id])
+
+  @@index([bookingId])
+  @@map("healthcare_bookings")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  FULL_REFUND
+  INITIATED
+}
+
+enum PaymentType {
+  PAYMENT_GATEWAY
+  WALLET
+  DISCOUNT
+  FREE
+}
+
+model payments {
+  id              String           @id @default(uuid()) @map("id")
+  orderId         String           @unique @map("order_id")
+  amount          Float            @map("amount")
+  currency        String           @map("currency")
+  status          PaymentStatus    @map("status")
+  invoiceUrl      String?          @map("invoice_url")
+  transactionDate DateTime         @default(now()) @map("transaction_date")
+  lastUpdated     DateTime         @updatedAt @map("last_updated")
+  paymentMethods  paymentMethods[]
+  orders          orders           @relation(fields: [orderId], references: [id])
+  refunds         refunds[]
+  paymentDetails  paymentDetails[]
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model paymentDetails {
+  id               String   @id @default(uuid()) @map("id")
+  paymentId        String   @map("payment_id")
+  paidAmount       Float?   @default(0) @map("paid_amount")
+  gatewayName      String?  @map("gateway_name")
+  gatewayStatus    String?  @map("gateway_status")
+  gatewaySessionId String?  @unique @map("gateway_session_id")
+  gatewayPaymentId String?  @unique @map("gateway_payment_id")
+  transactionDate  DateTime @default(now()) @map("transaction_date")
+  lastUpdated      DateTime @updatedAt @map("last_updated")
+  payments         payments @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId, gatewayPaymentId, gatewaySessionId])
+  @@map("payment_details")
+}
+
+model paymentMethods {
+  id            String      @id @default(uuid()) @map("id")
+  payableAmount Float       @map("payable_amount")
+  paymentId     String      @map("payment_id")
+  bookingId     String      @map("booking_id")
+  paymentMethod PaymentType @map("payment_method")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  payments      payments    @relation(fields: [paymentId], references: [id])
+  bookings      bookings    @relation(fields: [bookingId], references: [id])
+
+  @@index([paymentId, bookingId])
+  @@map("payment_method")
+}
+
+model refunds {
+  id              String          @id @default(uuid()) @map("id")
+  bookingId       String          @unique @map("booking_id")
+  paymentId       String          @unique @map("payment_id")
+  amount          Float           @map("amount")
+  currency        String          @map("currency")
+  refundReason    String?         @map("refund_reason")
+  transactionDate DateTime?       @default(now()) @map("transaction_date")
+  lastUpdated     DateTime?       @updatedAt @map("last_updated")
+  refundMethods   refundMethods[]
+  payments        payments        @relation(fields: [paymentId], references: [id])
+  bookings        bookings        @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId, paymentId])
+  @@map("refunds")
+}
+
+model refundMethods {
+  id               String      @id @default(uuid()) @map("id")
+  amount           Float       @map("payable_amount")
+  refundId         String      @map("refund_id")
+  paymentMethod    PaymentType @map("payment_method")
+  status           String?     @map("status")
+  gatewayPaymentId String?     @map("gateway_payment_id")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+  refunds          refunds     @relation(fields: [refundId], references: [id])
+
+  @@index([refundId])
+  @@map("refund_methods")
+}
+
+model HealthcareBookingItems {
+  id                 String               @id @default(uuid()) @map("id")
+  vendorId           String               @map("vendor_id")
+  vendorServiceCode  String               @map("vendor_service_code")
+  name               String               @map("name")
+  itemType           HealthcareItemType   @map("item_type")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+  vendor             Vendor               @relation(fields: [vendorId], references: [id])
+  healthcareBookings healthcareBookings[]
+
+  @@unique([vendorId, vendorServiceCode, itemType])
+  @@index([vendorId, vendorServiceCode, itemType])
+  @@map("healthcare_booking_items")
+}
+
+enum HealthcareItemType {
+  OPD
+  ONLINE_CONSULTATION
+  LAB_TEST
+  LAB_PACKAGE
+  DENTAL
+  VISION
+  RADIOLOGY
+  OTHERS
+}
+
+model VendorOrganizationEntity {
+  id             String   @id @default(uuid()) @map("id")
+  vendorId       String   @map("vendor_id")
+  organizationId String   @map("organization_id")
+  entityId       String   @map("entity_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  vendor       Vendor       @relation(fields: [vendorId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("vendor_organization_entities")
+}
